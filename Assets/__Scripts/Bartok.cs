@@ -11,6 +11,8 @@ public class Bartok : MonoBehaviour {
     public TextAsset layoutXML;
     public Vector3 layoutCenter = Vector3.zero;
     public float handFanDegrees = 10f; // a
+    public int numStartingCards = 7;
+    public float drawTimeStagger = 0.1f;
 
     [Header("Set Dynamically")]
     public Deck deck;
@@ -84,6 +86,54 @@ public class Bartok : MonoBehaviour {
             pl.playerNum = tSD.player;
         }
         players[0].type = PlayerType.human; // Make only the 0th player human
+
+        CardBartok tCB;
+        // Deal seven cards to each player
+        for (int i = 0; i < numStartingCards; i++) {
+            for (int j = 0; j < 4; j++) { // a
+                tCB = Draw(); // Draw a card                           
+                // Stagger the draw time a bit.
+                tCB.timeStart = Time.time + drawTimeStagger * (i * 4 + j); // b
+
+                players[(j + 1) % 4].AddCard(tCB); // c
+            }
+        }
+
+        Invoke("DrawFirstTarget", drawTimeStagger * (numStartingCards * 4 + 4));// d
+
+    }
+
+    public void DrawFirstTarget() {
+        // Flip up the first target card from the drawPile
+        CardBartok tCB = MoveToTarget(Draw());
+    }
+
+    // This makes a new card the target
+    public CardBartok MoveToTarget(CardBartok tCB) {
+        tCB.timeStart = 0;
+        tCB.MoveTo(layout.discardPile.pos + Vector3.back);
+        tCB.state = CBState.toTarget;
+        tCB.faceUp = true;
+
+        tCB.SetSortingLayerName("10");
+        tCB.eventualSortLayer = layout.target.layerName;
+        if (targetCard != null) {
+            MoveToDiscard(targetCard);
+        }
+
+        targetCard = tCB;
+
+        return (tCB);
+    }
+
+    public CardBartok MoveToDiscard(CardBartok tCB) {
+        tCB.state = CBState.discard;
+        discardPile.Add(tCB);
+        tCB.SetSortingLayerName(layout.discardPile.layerName);
+        tCB.SetSortOrder(discardPile.Count * 4);
+        tCB.transform.localPosition = layout.discardPile.pos + Vector3.back / 2;
+
+        return (tCB);
     }
 
     // The Draw function will pull a single card from the drawPile and return it

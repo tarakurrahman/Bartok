@@ -21,6 +21,21 @@ public class Player { // b
   
         // Add the card to the hand
         hand.Add(eCB);
+
+        // Sort the cards by rank using LINQ if this is a human
+        if (type == PlayerType.human) {
+            CardBartok[] cards = hand.ToArray(); // a
+                                      
+            // This is the LINQ call
+            cards = cards.OrderBy(cd => cd.rank).ToArray(); // b
+
+            hand = new List<CardBartok>(cards); // c
+            // Note: LINQ operations can be a bit slow (like it could take a couple of milliseconds), but since we're only doing it once every round, it isn't a problem.
+        }
+
+        eCB.SetSortingLayerName("10"); // Sorts the moving card to the top // a
+        eCB.eventualSortLayer = handSlotDef.layerName;
+
         FanHand();
         return (eCB);
     }
@@ -59,14 +74,23 @@ public class Player { // b
             pos.z = -0.5f * i; // g
 
             // Set the localPosition and rotation of the ith card in the hand
-            hand[i].transform.localPosition = pos; // h
-            hand[i].transform.rotation = rotQ;
-            hand[i].state = CBState.hand;
+            hand[i].MoveTo(pos, rotQ); // Tell CardBartok to interpolate
+            hand[i].state = CBState.toHand;
+            // After the move, CardBartok will set the state to CBState.hand
+
+            // Set the localPosition and rotation of the ith card in the hand
+            /*            hand[i].transform.localPosition = pos; // h
+             *            hand[i].transform.rotation = rotQ;
+             *            hand[i].state = CBState.hand;
+            */
 
             hand[i].faceUp = (type == PlayerType.human); // i
-            
+                                                   
             // Set the SortOrder of the cards so that they overlap properly
-            hand[i].SetSortOrder(i * 4); // j
+            hand[i].eventualSortOrder = i * 4; // b
+
+            // Set the SortOrder of the cards so that they overlap properly
+            // hand[i].SetSortOrder(i * 4); // j
         }
     }
 }

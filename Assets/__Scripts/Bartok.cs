@@ -197,8 +197,61 @@ public class Bartok : MonoBehaviour {
     // The Draw function will pull a single card from the drawPile and return it
     public CardBartok Draw() {
         CardBartok cd = drawPile[0]; // Pull the 0th CardProspector
+
+        if (drawPile.Count == 0) { // If the drawPile is now empty
+          // We need to shuffle the discards into the drawPile
+            int ndx;
+            while (discardPile.Count > 0) {
+                // Pull a random card from the discard pile
+                ndx = Random.Range(0, discardPile.Count); // a
+                drawPile.Add(discardPile[ndx]);
+                discardPile.RemoveAt(ndx);
+            }
+            ArrangeDrawPile();
+            // Show the cards moving to the drawPile
+            float t = Time.time;
+            foreach (CardBartok tCB in drawPile) {
+                tCB.transform.localPosition = layout.discardPile.pos;
+                tCB.callbackPlayer = null;
+                tCB.MoveTo(layout.drawPile.pos);
+                tCB.timeStart = t;
+                t += 0.02f;
+                tCB.state = CBState.toDrawpile;
+                tCB.eventualSortLayer = "0";
+            }
+        }
+
         drawPile.RemoveAt(0); // Then remove it from List<> drawPile
         return (cd); // And return it
+    }
+
+    public void CardClicked(CardBartok tCB) {
+        if (CURRENT_PLAYER.type != PlayerType.human) return; // a
+        if (phase == TurnPhase.waiting) return; // b
+
+        switch (tCB.state) { // c
+            case CBState.drawpile: // d
+                // Draw the top card, not necessarily the one clicked.
+                CardBartok cb = CURRENT_PLAYER.AddCard(Draw());
+                cb.callbackPlayer = CURRENT_PLAYER;
+                Utils.tr("Bartok:CardClicked()", "Draw", cb.name);
+                phase = TurnPhase.waiting;
+                break;
+
+            case CBState.hand: // e
+                // Check to see whether the card is valid
+                if (ValidPlay(tCB)) {
+                    CURRENT_PLAYER.RemoveCard(tCB);
+                    MoveToTarget(tCB);
+                    tCB.callbackPlayer = CURRENT_PLAYER;
+                    Utils.tr("Bartok:CardClicked()", "Play", tCB.name, targetCard.name + " is target"); // f
+                    phase = TurnPhase.waiting;
+                } else {
+                    // Just ignore it but report what the player tried
+                    Utils.tr("Bartok:CardClicked()", "Attempted to Play", tCB.name, targetCard.name + " is target"); // f
+                }
+                break;
+        }
     }
 
     // This Update() is temporarily used to test adding cards to players' hands

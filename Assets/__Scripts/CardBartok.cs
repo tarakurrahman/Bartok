@@ -34,7 +34,9 @@ public class CardBartok : Card { // b
 
     // When the card is done moving, it will call reportFinishTo.SendMessage()
     public GameObject reportFinishTo = null;
-    
+    [System.NonSerialized] // a
+    public Player callbackPlayer = null; // b
+
     // MoveTo tells the card to interpolate to a new position and rotation
     public void MoveTo(Vector3 ePos, Quaternion eRot) {
         // Make new interpolation lists for the card.
@@ -64,7 +66,6 @@ public class CardBartok : Card { // b
         switch (state) { // f
             case CBState.toHand:
             case CBState.toTarget:
-            case CBState.toDrawpile:
             case CBState.to:
                 float u = (Time.time - timeStart) / timeDuration; // g
                 float uC = Easing.Ease(u, MOVE_EASING);
@@ -92,6 +93,11 @@ public class CardBartok : Card { // b
                     if (reportFinishTo != null) { // j
                         reportFinishTo.SendMessage("CBCallback", this);
                         reportFinishTo = null;
+                    } else if (callbackPlayer != null) { // c
+                      // If there's a callback Player
+                      // Call CBCallback directly on the Player
+                        callbackPlayer.CBCallback(this);
+                        callbackPlayer = null;
                     } else { // If there is nothing to callback
                       // Just let it stay still.
                     }
